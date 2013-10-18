@@ -3,26 +3,27 @@
 
 
 import time
-import u3
-import socketIO_client
-
-try:
-	daq = u3.U3()
-except:
-	print "Error al conectarse al DAQ."
+from daq import DAQ
+from server import Server
+import random
 
 
-socket = socketIO_client.SocketIO('delphicare.nodejitsu.com', 80)
+daq = DAQ()
+server = Server('localhost', 8090)
+
 
 analog1 = 0
 analog2 = 0
 
 
 def main():
+	volts = 200
+	delta = 0
 	while(True):
-		#onda()
-		socket.emit('voltaje', {'valor': 10})
-		time.sleep(1)
+		server.send_voltage(volts)
+		delta = random.randint(-1, 1)
+		volts = volts + delta
+		time.sleep(.01)
 
 def onda():
 	daq.setFIOState(4, state=1)
