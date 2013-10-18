@@ -5,25 +5,18 @@
 import time
 import thread
 import threading
+import multiprocessing
 import random
 
 
 analog1 = 0
 analog2 = 0
 
-
-global should_exit
-should_exit = False
-server_done = threading.Event()
-daq_done = threading.Event()
-
 def main():
-	global should_exit
 	print "Creando procesos de comunicación..."
+	st = multiprocessing.Process(target=server_process)
+	dt = multiprocessing.Process(target=daq_process)
 	try:
-		st = threading.Thread(target=server_thread)
-		dt = threading.Thread(target=daq_thread)
-
 		st.start()
 		time.sleep(.5)
 		dt.start()
@@ -35,27 +28,20 @@ def main():
 		cmd = raw_input()
 		parse_cmd(cmd)
 
-	should_exit = True
 
-	print "Esperando a que cierre el proceso del servidor..."
-	server_done.wait()
-	print "Esperando a que cierre el proceso del daq..."
-	daq_done.wait()
-
-	print "Good Bye!"
-
+	print "Terminando procesos..."
+	st.terminate()
+	dt.terminate()
 
 def parse_cmd(cmd):
 	if(cmd == ""):
 		pass
 
 
-def server_thread():
+def server_process():
 	"""
 	This thread communicates with the server.
 	"""
-	global should_exit
-
 	from server import Server
 	print "Conectandose con el servidor..."
 	server = Server('localhost', 8090)
@@ -66,19 +52,15 @@ def server_thread():
 
 	volts = 200
 	delta = 0
-	while not should_exit:
-		#server.send_voltage(volts)
-		#delta = random.randint(-1, 1)
-		#volts = volts + delta
-		time.sleep(0)
+	while True:
+		server.send_voltage(volts)
+		delta = random.randint(-1, 1)
+		volts = volts + delta
 
-	print "Proceso de comunicación con el servidor terminado."
-
-def daq_thread():
+def daq_process():
 	"""
 	This thread communicates with the daq.
 	"""
-	global should_exit
 
 	from daq import DAQ
 	print "Conectandose con el DAQ."
@@ -89,10 +71,8 @@ def daq_thread():
 
 
 
-	while not should_exit:
+	while True:
 		pass
-
-	print "Proceso de comunicación con el DAQ terminado."
 
 	#daq.setFIOState(4, state=1)
 	#time.sleep(0.1)
