@@ -4,23 +4,25 @@
 
 import time
 import u3
-import httplib
+import socketIO_client
 
-daq = u3.U3()
+try:
+	daq = u3.U3()
+except:
+	print "Error al conectarse al DAQ."
 
-con = httplib.HTTPConnection('delphicare.herokuapp.com')
-con.connect()
+
+socket = socketIO_client.SocketIO('delphicare.nodejitsu.com', 80)
 
 analog1 = 0
 analog2 = 0
 
 
 def main():
-	#while(True):
+	while(True):
 		#onda()
-	con.request('POST', '/voltaje', 'voltaje=10', {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"})
-	con.getresponse()
-
+		socket.emit('voltaje', {'valor': 10})
+		time.sleep(1)
 
 def onda():
 	daq.setFIOState(4, state=1)
