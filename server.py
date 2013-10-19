@@ -12,6 +12,7 @@ class Server():
 		try:
 			self.sock = socket.create_connection((host, port))
 			self.connected = True
+			print "Servidor conectado."
 		except:
 			print "ERROR: No se pudo conectar al servidor."
 			self.connected = False

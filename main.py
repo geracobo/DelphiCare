@@ -7,10 +7,15 @@ import thread
 import threading
 import multiprocessing
 import random
+import socket
 
+SERVER_ADDRESS =  "162.243.55.207"
+#SERVER_ADDRESS = "localhost"
+SERVER_PORT = 8090
 
 analog1 = 0
 analog2 = 0
+
 
 def main():
 	print "Creando procesos de comunicación..."
@@ -44,18 +49,21 @@ def server_process():
 	"""
 	from server import Server
 	print "Conectandose con el servidor..."
-	server = Server('localhost', 8090)
-
-	if not server.connected:
+	try:
+		server = socket.create_connection((SERVER_ADDRESS, SERVER_PORT))
+	except:
+		print "ERROR: No se pudo conectar con el servidor."
 		return
 
 
 	volts = 200
 	delta = 0
 	while True:
-		server.send_voltage(volts)
+		print "Mandando", volts
+		server.send(str(volts)+"\n")
 		delta = random.randint(-1, 1)
 		volts = volts + delta
+		time.sleep(.01)
 
 def daq_process():
 	"""
