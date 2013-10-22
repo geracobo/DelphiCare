@@ -92,7 +92,20 @@ def daq_process():
 	daq = U3()
 	while True:
 		analog = daq.getAIN(0)
-		pass
+
+		daq.setFIOState(4, state=1)
+		time.sleep(0.1)
+		analog1 = daq.getAIN(0)
+		daq.setFIOState(4, state=0)
+
+		time.sleep(0.1)
+
+		daq.setFIOState(5, state=1)
+		time.sleep(0.1)
+		analog2 = daq.getAIN(1)
+		daq.setFIOState(5, state=0)
+
+		time.sleep(0.1)
 
 	#daq.setFIOState(4, state=1)
 	#time.sleep(0.1)
