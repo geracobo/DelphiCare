@@ -11,10 +11,12 @@ import socket
 
 SERVER_ADDRESS =  "162.243.55.207"
 #SERVER_ADDRESS = "localhost"
-SERVER_PORT = 8090
+SERVER_PORT = 9000
 
-analog1 = 0
-analog2 = 0
+#analog1 = 0
+#analog2 = 0
+
+analog = 0
 
 
 def main():
@@ -48,6 +50,8 @@ def server_process():
 	This thread communicates with the server.
 	"""
 	from server import Server
+	global analog
+
 	print "Conectandose con el servidor..."
 	try:
 		server = socket.create_connection((SERVER_ADDRESS, SERVER_PORT))
@@ -55,12 +59,16 @@ def server_process():
 		print "ERROR: No se pudo conectar con el servidor."
 		return
 
+	from u3 import U3
+	daq = U3()
+
 
 	volts = 200
 	delta = 0
 	while True:
-		print "Mandando", volts
-		server.send(str(volts)+"\n")
+		a = daq.getAIN(0)*10
+		print "Mandando", a
+		server.send(str(a)+"\n")
 		delta = random.randint(-1, 1)
 		volts = volts + delta
 		time.sleep(.01)
@@ -70,7 +78,10 @@ def daq_process():
 	This thread communicates with the daq.
 	"""
 
-	from daq import DAQ
+	from u3 import U3
+
+	global analog
+
 	print "Conectandose con el DAQ."
 	daq = DAQ()
 
@@ -78,8 +89,9 @@ def daq_process():
 		return
 
 
-
+	daq = U3()
 	while True:
+		analog = daq.getAIN(0)
 		pass
 
 	#daq.setFIOState(4, state=1)
