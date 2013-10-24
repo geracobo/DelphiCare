@@ -23,6 +23,10 @@ def main():
 	print "Creando procesos de comunicación..."
 	st = multiprocessing.Process(target=server_process, args=(ekg_queue, spo2_queue))
 	dt = multiprocessing.Process(target=daq_process, args=(ekg_queue, spo2_queue))
+
+	st.daemon = True
+	dt.daemon = True
+
 	try:
 		st.start()
 		time.sleep(1)
@@ -87,15 +91,16 @@ def daq_process(ekg_queue, spo2_queue):
 
 	import random
 
-	volts = 200
-	delta = 0
-	while True:
-		delta = random.randint(-5,5)
-		volts = volts + delta
-		ekg_queue.put(volts)
-		spo2_queue.put(5)
+	#volts = 200
+	#delta = 0
+	#while True:
+	#	delta = random.randint(-5,5)
+	#	volts = volts + delta
+	#	ekg_queue.put(volts)
+	#	spo2_queue.put(5)
 
 	from u3 import U3
+	from math import log, fabs, log10
 
 	print "Conectandose con el DAQ."
 
@@ -108,9 +113,9 @@ def daq_process(ekg_queue, spo2_queue):
 
 	while True:
 		ekg = daq.getAIN(0)
-		ekg_queue.put([ekg])
+		ekg_queue.put([ekg*70])
 
-		sleep = .01
+		sleep = .005
 
 		daq.setFIOState(4, state=1)
 		time.sleep(sleep)
@@ -121,10 +126,17 @@ def daq_process(ekg_queue, spo2_queue):
 
 		daq.setFIOState(6, state=1)
 		time.sleep(sleep)
-		photo2 = daq.getAIN(2)
+		photo2 = daq.getAIN(1)
 		daq.setFIOState(6, state=0)
 
-		time.sleep(sleep)
+		R = (log10(fabs(photo1)) / log10(fabs(photo2)))
+
+		#spo2 = 108.611 - 20.1389*R - 3.47222*R**2
+		spo2 = R*100
+
+		spo2_queue.put([spo2])
+
+		#time.sleep(sleep)
 
 
 
