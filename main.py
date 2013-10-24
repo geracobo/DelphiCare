@@ -77,7 +77,7 @@ def server_process(ekg_queue, spo2_queue):
 		packetJson = json.dumps(packet)
 
 		print "Mandando Paquete: ", packetJson
-		server.send(str(packetJson)+"\n")
+		server.send(str(packetJson)+"|")
 		time.sleep(.01)
 
 def daq_process(ekg_queue, spo2_queue):
