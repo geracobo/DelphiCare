@@ -3,29 +3,29 @@
 
 
 import time
-import thread
-import threading
 import multiprocessing
-import random
-import socket
 
 SERVER_ADDRESS =  "162.243.55.207"
 #SERVER_ADDRESS = "localhost"
-SERVER_PORT = 9000
+SERVER_PORT = 8090
 
-#analog1 = 0
-#analog2 = 0
 
-analog = 0
 
 
 def main():
+	"""
+	Main Process.
+	"""
+
+	ekg_queue = multiprocessing.Queue()
+	spo2_queue = multiprocessing.Queue()
+
 	print "Creando procesos de comunicación..."
-	st = multiprocessing.Process(target=server_process)
-	dt = multiprocessing.Process(target=daq_process)
+	st = multiprocessing.Process(target=server_process, args=(ekg_queue, spo2_queue))
+	dt = multiprocessing.Process(target=daq_process, args=(ekg_queue, spo2_queue))
 	try:
 		st.start()
-		time.sleep(.5)
+		time.sleep(1)
 		dt.start()
 	except:
 		print "ERROR: No se pudieron crear los procesos de comunicación."
@@ -45,81 +45,86 @@ def parse_cmd(cmd):
 		pass
 
 
-def server_process():
+def server_process(ekg_queue, spo2_queue):
 	"""
-	This thread communicates with the server.
+	This thread communicates with the server. When it finds data in the
+	queue, it creates a packet with the following form:
+
+	{
+		ekg: ekg_value,
+		spo2: spo2_value
+	}
+
 	"""
-	from server import Server
-	global analog
+	import socket
+	import json
 
 	print "Conectandose con el servidor..."
 	try:
-		server = socket.create_connection((SERVER_ADDRESS, SERVER_PORT))
+		server = socket.create_connection((SERVER_ADDRESS, SERVER_PORT), timeout=.5)
 	except:
 		print "ERROR: No se pudo conectar con el servidor."
 		return
 
-	from u3 import U3
-	daq = U3()
 
-
-	volts = 200
-	delta = 0
 	while True:
-		a = daq.getAIN(0)*10
-		print "Mandando", a
-		server.send(str(a)+"\n")
-		delta = random.randint(-1, 1)
-		volts = volts + delta
+		packet= {}
+		if not ekg_queue.empty():
+			packet['ekg'] = ekg_queue.get()
+		if not spo2_queue.empty():
+			packet['spo2'] = spo2_queue.get()
+
+		packetJson = json.dumps(packet)
+
+		print "Mandando Paquete: ", packetJson
+		server.send(str(packetJson)+"\n")
 		time.sleep(.01)
 
-def daq_process():
+def daq_process(ekg_queue, spo2_queue):
 	"""
 	This thread communicates with the daq.
 	"""
 
+	import random
+
+	volts = 200
+	delta = 0
+	while True:
+		delta = random.randint(-5,5)
+		volts = volts + delta
+		ekg_queue.put(volts)
+		spo2_queue.put(5)
+
 	from u3 import U3
 
-	global analog
-
 	print "Conectandose con el DAQ."
-	daq = DAQ()
 
-	if not daq.connected:
+	try:
+		daq = U3()
+	except:
+		print "ERROR: No se pude conectar con el daq."
 		return
 
 
-	daq = U3()
 	while True:
-		analog = daq.getAIN(0)
+		ekg = daq.getAIN(0)
+		ekg_queue.put([ekg])
+
+		sleep = .01
 
 		daq.setFIOState(4, state=1)
-		time.sleep(0.1)
-		analog1 = daq.getAIN(0)
+		time.sleep(sleep)
+		photo1 = daq.getAIN(1)
 		daq.setFIOState(4, state=0)
 
-		time.sleep(0.1)
+		time.sleep(sleep)
 
-		daq.setFIOState(5, state=1)
-		time.sleep(0.1)
-		analog2 = daq.getAIN(1)
-		daq.setFIOState(5, state=0)
+		daq.setFIOState(6, state=1)
+		time.sleep(sleep)
+		photo2 = daq.getAIN(2)
+		daq.setFIOState(6, state=0)
 
-		time.sleep(0.1)
-
-	#daq.setFIOState(4, state=1)
-	#time.sleep(0.1)
-	#analog1 = daq.getAIN(0)
-	#daq.setFIOState(4, state=0)
-
-	#time.sleep(0.1)
-
-	#daq.setFIOState(5, state=1)
-	#time.sleep(0.1)
-	#analog2 = daq.getAIN(1)
-	#daq.setFIOState(5, state=0)
-
-	#time.sleep(0.1)
+		time.sleep(sleep)
 
 
 
